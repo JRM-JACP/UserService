@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.0
+    command: start-dev
+    container_name: keycloak
+    hostname: keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres_keycloak
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_DB_USERNAME: ${KC_DB_USERNAME}
+      KC_DB_SCHEMA: public
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/auth/realms/master"
+        ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres_keycloak:
+        condition: service_healthy
+    networks:
+      - keycloak_network
+
+  postgres_keycloak:
+    image: postgres:15.3
+    container_name: postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: "exit 0"
+    ports:
+      - "5433:5432"
+    networks:
+      - keycloak_network
+
+volumes:
+  pgdata_keycloak:
+networks:
+  keycloak_network:
+    driver: bridge
